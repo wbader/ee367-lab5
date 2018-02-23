@@ -215,6 +215,21 @@ write(curr_host->send_fd, msg, n);
 usleep(TENMILLISEC);
 }
 
+int file_download(struct man_port_at_man *curr_host){
+	int n;
+	int host_id;
+	char name[NAME_LENGTH];
+	char msg[NAME_LENGTH];
+	
+	printf("Enter file name to download: ");
+	scanf("%s", name);
+	printf("Enter host id of destination:  ");
+	scanf("%d", &host_id);
+	printf("\n");
+	n = sprintf(msg, "d %d %s", host_id, name);//send msg to host
+	write(curr_host->send_fd, msg, n);
+	usleep(TENMILLISEC);
+}
 
 /***************************** 
  * Main loop of the manager  *
@@ -258,7 +273,7 @@ while(1) {
 			file_upload(curr_host);
 			break;
 		case 'd': /* Download a file from a host */
-			printf("This command is not implemented\n");
+			file_download(curr_host);
 			break;
 		case 'q':  /* Quit */
 			return;
