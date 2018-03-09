@@ -16,7 +16,7 @@ void packet_send(struct net_port *port, struct packet *p)
 char msg[PAYLOAD_MAX+4];
 int i;
 
-if (port->type == PIPE) {
+if (port->type == PIPE || port->type == SOCKET) {
 	msg[0] = (char) p->src; 
 	msg[1] = (char) p->dst;
 	msg[2] = (char) p->type;
@@ -31,7 +31,7 @@ if (port->type == PIPE) {
 //		(int) p->src, 
 //		(int) p->dst);
 }
-
+//if (port->type == SOCKET) {}
 return;
 }
 
@@ -41,7 +41,7 @@ char msg[PAYLOAD_MAX+4];
 int n;
 int i;
 	
-if (port->type == PIPE) {
+if (port->type == PIPE || port->type == SOCKET) {
 	n = read(port->pipe_recv_fd, msg, PAYLOAD_MAX+4);
 	if (n>0) {
 		p->src = (char) msg[0];
