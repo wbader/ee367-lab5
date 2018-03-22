@@ -11,11 +11,21 @@
  * when a call to read/write (or send/recv) will be blocked
  * until the read/write is completely fulfilled.
  */
-
+ 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
 
 #define _GNU_SOURCE
 #include <fcntl.h>
@@ -31,20 +41,45 @@
 #define MAX_FILE_NAME 100
 #define PIPE_READ 0
 #define PIPE_WRITE 1
+#define BACKLOG 10
 
 enum bool {FALSE, TRUE};
 
 /* 
  * Struct used to store a link. It is used when the 
  * network configuration file is loaded.
+ * Added domain and ports for socket connections 
  */
 
 struct net_link {
 	enum NetLinkType type;
 	int pipe_node0;
 	int pipe_node1;
+	char domainHome[MAX_FILE_NAME];
+	int portHome;
+	char domainAway[MAX_FILE_NAME];
+	int portAway;
 };
 
+/*
+ * Copied from a previous lab
+ * These two functions are used for socket connections
+ */
+ 
+void sigchld_handler(int s)
+{
+	while(waitpid(-1, NULL, WNOHANG) > 0);
+}
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+	if (sa->sa_family == AF_INET) {
+		return &(((struct sockaddr_in*)sa)->sin_addr);
+	}
+
+	return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
 /* 
  * The following are private global variables to this file net.c
@@ -364,52 +399,224 @@ for (i=0; i<g_net_node_num; i++) {
  */
 void create_port_list()
 {
-struct net_port *p0;
-struct net_port *p1;
-int node0, node1;
-int fd01[2];
-int fd10[2];
-int i;
+	// local variables needed
+	struct net_port *p0;
+	struct net_port *p1;
+	//struct pipe_link *pipeList; // my structure
+	int serverPipe[2];
+	//int clientPipe[2];
+	int node0, node1;
+	int fd01[2];
+	int fd10[2];
+	char portName[6];
+	int i;
+	int yes = 1;
+	char buf[1001];
 
-g_port_list = NULL;
-for (i=0; i<g_net_link_num; i++) {
-	if (g_net_link[i].type == PIPE) {
+	// Make sure there is only one server, needed for switch
+	enum bool isServerSetup = FALSE;
+	
+	// Things needed for sockets -- copied from prior lab
 
-		node0 = g_net_link[i].pipe_node0;
-		node1 = g_net_link[i].pipe_node1;
+	struct addrinfo hints, *servinfo, *p;
+	struct sockaddr_storage their_addr; // connector's address information
+	socklen_t sin_size;
+	struct sigaction sa;
+	char s[INET6_ADDRSTRLEN];
+	int rv;
+	int serverSetup = 0;
+	int sockfd;
 
-		p0 = (struct net_port *) malloc(sizeof(struct net_port));
-		p0->type = g_net_link[i].type;
-		p0->pipe_host_id = node0;
+	// End things needed for sockets
 
-		p1 = (struct net_port *) malloc(sizeof(struct net_port));
-		p1->type = g_net_link[i].type;
-		p1->pipe_host_id = node1;
+	g_port_list = NULL;
+	for (i=0; i<g_net_link_num; i++) 
+	{
+		if (g_net_link[i].type == PIPE) 
+		{
 
-		pipe(fd01);  /* Create a pipe */
-			/* Make the pipe nonblocking at both ends */
-   		fcntl(fd01[PIPE_WRITE], F_SETFL, 
-				fcntl(fd01[PIPE_WRITE], F_GETFL) | O_NONBLOCK);
-   		fcntl(fd01[PIPE_READ], F_SETFL, 
-				fcntl(fd01[PIPE_READ], F_GETFL) | O_NONBLOCK);
-		p0->pipe_send_fd = fd01[PIPE_WRITE]; 
-		p1->pipe_recv_fd = fd01[PIPE_READ]; 
+			node0 = g_net_link[i].pipe_node0;
+			node1 = g_net_link[i].pipe_node1;
 
-		pipe(fd10);  /* Create a pipe */
-			/* Make the pipe nonblocking at both ends */
-   		fcntl(fd10[PIPE_WRITE], F_SETFL, 
-				fcntl(fd10[PIPE_WRITE], F_GETFL) | O_NONBLOCK);
-   		fcntl(fd10[PIPE_READ], F_SETFL, 
-				fcntl(fd10[PIPE_READ], F_GETFL) | O_NONBLOCK);
-		p1->pipe_send_fd = fd10[PIPE_WRITE]; 
-		p0->pipe_recv_fd = fd10[PIPE_READ]; 
+			p0 = (struct net_port *) malloc(sizeof(struct net_port));
+			p0->type = g_net_link[i].type;
+			p0->pipe_host_id = node0;
 
-		p0->next = p1; /* Insert ports in linked lisst */
-		p1->next = g_port_list;
-		g_port_list = p0;
+			p1 = (struct net_port *) malloc(sizeof(struct net_port));
+			p1->type = g_net_link[i].type;
+			p1->pipe_host_id = node1;
 
+			pipe(fd01);  /* Create a pipe */
+				/* Make the pipe nonblocking at both ends */
+			fcntl(fd01[PIPE_WRITE], F_SETFL, 
+					fcntl(fd01[PIPE_WRITE], F_GETFL) | O_NONBLOCK);
+			fcntl(fd01[PIPE_READ], F_SETFL, 
+					fcntl(fd01[PIPE_READ], F_GETFL) | O_NONBLOCK);
+			p0->pipe_send_fd = fd01[PIPE_WRITE]; 
+			p1->pipe_recv_fd = fd01[PIPE_READ]; 
+
+			pipe(fd10);  /* Create a pipe */
+				/* Make the pipe nonblocking at both ends */
+			fcntl(fd10[PIPE_WRITE], F_SETFL, 
+					fcntl(fd10[PIPE_WRITE], F_GETFL) | O_NONBLOCK);
+			fcntl(fd10[PIPE_READ], F_SETFL, 
+					fcntl(fd10[PIPE_READ], F_GETFL) | O_NONBLOCK);
+			p1->pipe_send_fd = fd10[PIPE_WRITE]; 
+			p0->pipe_recv_fd = fd10[PIPE_READ]; 
+
+			p0->next = p1; /* Insert ports in linked lisst */
+			p1->next = g_port_list;
+			g_port_list = p0;
+
+		}
+		else if (g_net_link[i].type == SOCKET)
+		{
+			// DEBUG stuff:
+			//printf("Socket! Connected from %s, port %d\nConnected to %s, port %d\n",
+			//	g_net_link[i].domainHome, g_net_link[i].portHome, g_net_link[i].domainAway, g_net_link[i].portAway
+			//	);
+			pipe(serverPipe);
+			
+			fcntl(serverPipe[PIPE_WRITE], F_SETFL, 
+					fcntl(serverPipe[PIPE_WRITE], F_GETFL) | O_NONBLOCK);
+			fcntl(serverPipe[PIPE_READ], F_SETFL, 
+					fcntl(serverPipe[PIPE_READ], F_GETFL) | O_NONBLOCK);
+			
+			//pipe(clientPipe);
+			int pid1, pid2, pid3;
+			if((pid1 = fork())==0) // child (set up the server (grand child) & client (this child))
+			{
+				//if (isServerSetup == TRUE)	// make sure we only have one server running
+				//{
+				//	exit(1);
+				//}
+				//isServerSetup = TRUE;
+				
+				printf("Setting up server for %d\n", i);
+				
+				close(serverPipe[PIPE_READ]);
+				
+				memset(&hints, 0, sizeof hints);
+				hints.ai_family = AF_UNSPEC;
+				hints.ai_socktype = SOCK_STREAM;
+				hints.ai_flags = AI_PASSIVE; // use my IP
+
+				sprintf(portName, "%d", g_net_link[i].portHome); // The port has to be a string
+				
+				if ((rv = getaddrinfo(NULL, portName , &hints, &servinfo)) != 0) 
+				{
+					fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+					return;
+				}
+				
+			
+					// loop through all the results and bind to the first we can
+				
+				for(p = servinfo; p != NULL; p = p->ai_next) 
+				{
+					if ((sockfd = socket(p->ai_family, p->ai_socktype,
+							p->ai_protocol)) == -1) {
+						printf("Test:");
+						perror("server: socket");
+						continue;
+					}
+
+					if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+							sizeof(int)) == -1) {
+						perror("setsockopt");
+						exit(1);
+					}
+
+					if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+						close(sockfd);
+						perror("server: bind");
+						continue;
+					}
+
+					break;
+				}
+				
+				freeaddrinfo(servinfo); // all done with this structure
+				
+				if (listen(sockfd, BACKLOG) == -1) {
+					perror("listen");
+					exit(1);
+				}
+
+				sa.sa_handler = sigchld_handler; // reap all dead processes
+				sigemptyset(&sa.sa_mask);
+				sa.sa_flags = SA_RESTART;
+				if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+					perror("sigaction");
+					exit(1);
+				}
+
+				if (p == NULL)  {
+					fprintf(stderr, "server: failed to bind\n");
+					return;
+				}
+
+				while(1) // main accept() loop
+				{  
+					sin_size = sizeof their_addr;
+					int new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+					if (new_fd == -1) {
+						perror("accept");
+						continue;
+					}
+
+					inet_ntop(their_addr.ss_family,
+						get_in_addr((struct sockaddr *)&their_addr),
+						s, sizeof s);
+					
+					printf("server %d: got connection from %s\n", i, s);
+					
+					if ((pid3=fork())==0) // this is the child process
+					{ 
+						
+						// receive incoming packet, then send through the pipe
+						int x = recv(new_fd, buf,PAYLOAD_MAX+4,0);
+						//buf[x] = '\0';
+						
+						printf("Received %d bytes\n", x);
+						printf("Received: %d%d%d%d%d%d%d%d\n", 	(int) buf[0],
+											(int) buf[1],
+											(int) buf[2],
+											(int) buf[3],
+											(int) buf[4],
+											(int) buf[5],
+											(int) buf[6],
+											(int) buf[7]);
+													
+						int z = write(serverPipe[PIPE_WRITE], buf, x);
+						
+						printf("Server wrote %d bytes\n", z);
+						
+						memset(buf, '\0', 1000);
+						
+						exit(0);
+					}
+				}
+				exit(0);
+			}
+			
+			// close the write end coming from the server
+			close(serverPipe[PIPE_WRITE]);
+			
+			//setup the net_port for the linked list
+			p0 = (struct net_port *) malloc(sizeof(struct net_port));
+			p0->type = g_net_link[i].type;
+			p0->pipe_host_id = g_net_link[i].pipe_node0;
+			p0->pipe_recv_fd = serverPipe[PIPE_READ];
+			p0->socket_send_port = g_net_link[i].portAway;
+			strcpy(p0->domainAway, g_net_link[i].domainAway);
+			p0->next = g_port_list;
+			g_port_list = p0;
+			
+
+			
+		}
 	}
-}
 
 }
 
@@ -458,7 +665,7 @@ else {
 	for (i=0; i<node_num; i++) { 
 		fscanf(fp, " %c ", &node_type);
 
-		if (node_type = 'H') {
+		if (node_type == 'H') {
 			fscanf(fp, " %d ", &node_id);
 			g_net_node[i].type = HOST;
 			g_net_node[i].id = node_id;
@@ -507,7 +714,17 @@ else {
 			g_net_link[i].pipe_node1 = node1;
 		}
 		else {
-			printf("   net.c: Unidentified link type\n");
+			//printf("   net.c: Unidentified link type\n");
+			g_net_link[i].type = SOCKET;
+			
+			fscanf(fp," %d ", &(g_net_link[i].pipe_node0));
+			// find a better way to do this?
+			fscanf(fp, " %s ", &(g_net_link[i].domainHome));
+			fscanf(fp, " %d ", &node0);
+			g_net_link[i].portHome = node0;
+			fscanf(fp, " %s ", &(g_net_link[i].domainAway));
+			fscanf(fp, " %d ", &node0);
+			g_net_link[i].portAway = node0;			
 		}
 	
 	}
@@ -534,7 +751,10 @@ for (i=0; i<g_net_link_num; i++) {
 				g_net_link[i].pipe_node1);
 	}
 	else if (g_net_link[i].type == SOCKET) {
-		printf("   Socket: to be constructed (net.c)\n");
+		printf("   Link to (%d) from %s port %d - SOCKET\n",
+				g_net_link[i].pipe_node0, 
+				g_net_link[i].domainAway, 
+				g_net_link[i].portAway);
 	}
 }
 

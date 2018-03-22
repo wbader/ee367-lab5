@@ -9,3 +9,6 @@ struct net_node *net_get_node_list();
 struct net_port *net_get_port_list(int host_id);
 
 
+void *get_in_addr(struct sockaddr *sa);
+
+

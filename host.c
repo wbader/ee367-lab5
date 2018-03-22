@@ -122,8 +122,15 @@ int n;
 int i;
 int k;
 
+//printf("In get_man_command\n");
+
 n = read(port->recv_fd, msg, MAN_MSG_LENGTH); /* Get command from manager */
+
+//printf("%d\n", n);
+
 if (n>0) {  /* Remove the first char from "msg" */
+	printf("In get_man_command\nReceived %s\n", msg);
+	
 	for (i=0; msg[i]==' ' && i<n; i++);
 	*c = msg[i];
 	i++;
@@ -172,6 +179,7 @@ if (j_q->head == NULL ) {
 	j_q->head = j;
 	j_q->tail = j;
 	j_q->occ = 1;
+	j->next = NULL;
 }
 else {
 	(j_q->tail)->next = j;
@@ -308,6 +316,7 @@ while(1) {
 
 			case 'p': // Sending ping request
 				// Create new ping request packet
+				printf("I should be pinging soon\n");
 				sscanf(man_msg, "%d", &dst);
 				new_packet = (struct packet *) 
 						malloc(sizeof(struct packet));	
