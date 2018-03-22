@@ -123,7 +123,13 @@ int host_id;
 int n;
 
 msg[0] = 's';
+msg[1] = '\0';
+
+printf("In display_host_state\n");
+
 write(curr_host->send_fd, msg, 1);
+
+printf("Sent msg: %s\n", msg);
 
 n = 0;
 while (n <= 0) {
@@ -172,7 +178,11 @@ printf("Enter id of host to ping: ");
 scanf("%d", &host_to_ping);
 n = sprintf(msg, "p %d", host_to_ping);
 
+//printf("We sent %s to curr_host", msg);
+
 write(curr_host->send_fd, msg, n);
+
+
 
 n = 0;
 while (n <= 0) {
