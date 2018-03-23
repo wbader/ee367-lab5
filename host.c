@@ -129,7 +129,7 @@ n = read(port->recv_fd, msg, MAN_MSG_LENGTH); /* Get command from manager */
 //printf("%d\n", n);
 
 if (n>0) {  /* Remove the first char from "msg" */
-	printf("In get_man_command\nReceived %s\n", msg);
+	// printf("In get_man_command\nReceived %s\n", msg);
 	
 	for (i=0; msg[i]==' ' && i<n; i++);
 	*c = msg[i];
