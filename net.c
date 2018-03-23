@@ -492,7 +492,7 @@ void create_port_list()
 				//}
 				//isServerSetup = TRUE;
 				
-				printf("Setting up server for %d\n", i);
+				// printf("Setting up server for %d\n", i);
 				
 				close(serverPipe[PIPE_READ]);
 				
@@ -516,7 +516,7 @@ void create_port_list()
 				{
 					if ((sockfd = socket(p->ai_family, p->ai_socktype,
 							p->ai_protocol)) == -1) {
-						printf("Test:");
+						//printf("Test:");
 						perror("server: socket");
 						continue;
 					}
@@ -569,7 +569,7 @@ void create_port_list()
 						get_in_addr((struct sockaddr *)&their_addr),
 						s, sizeof s);
 					
-					printf("server %d: got connection from %s\n", i, s);
+					// printf("server %d: got connection from %s\n", i, s);
 					
 					if ((pid3=fork())==0) // this is the child process
 					{ 
@@ -578,7 +578,8 @@ void create_port_list()
 						int x = recv(new_fd, buf,PAYLOAD_MAX+4,0);
 						//buf[x] = '\0';
 						
-						printf("Received %d bytes\n", x);
+						//printf("Received %d bytes\n", x);
+						/*
 						printf("Received: %d%d%d%d%d%d%d%d\n", 	(int) buf[0],
 											(int) buf[1],
 											(int) buf[2],
@@ -587,12 +588,12 @@ void create_port_list()
 											(int) buf[5],
 											(int) buf[6],
 											(int) buf[7]);
-													
+						*/							
 						int z = write(serverPipe[PIPE_WRITE], buf, x);
 						
-						printf("Server wrote %d bytes\n", z);
+						// printf("Server wrote %d bytes\n", z);
 						
-						memset(buf, '\0', 1000);
+						// memset(buf, '\0', 1000);
 						
 						exit(0);
 					}
