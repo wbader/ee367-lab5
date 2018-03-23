@@ -53,7 +53,7 @@ for (p_node = node_list; p_node != NULL; p_node = p_node->next) {
 	}  
 }
 
-printf("Started Man\n");
+// printf("Started Man\n");
 /* 
  * Parent process: Execute manager routine. 
  */
