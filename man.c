@@ -19,6 +19,7 @@
 #define PIPE_WRITE 1 
 #define PIPE_READ  0
 #define TENMILLISEC 10000
+#define MAX_DNS_NAME_LENGTH 50
 #define DELAY_FOR_HOST_REPLY 10  /* Delay in ten of milliseconds */
 
 void display_host(struct man_port_at_man *list, 
@@ -47,6 +48,7 @@ while(1) {
 	printf("   (p) Ping a host\n");
 	printf("   (u) Upload a file to a host\n");
 	printf("   (d) Download a file from a host\n");
+	printf("   (r) Register domain name\n");
 	printf("   (q) Quit\n");
 	printf("   Enter Command: ");
 	do {
@@ -59,6 +61,7 @@ while(1) {
 		case 's':
 		case 'm':
 		case 'h':
+		case 'r':
 		case 'c':
 		case 'p':
 		case 'u':
@@ -171,28 +174,73 @@ void ping(struct man_port_at_man *curr_host)
 {
 char msg[MAN_MSG_LENGTH];
 char reply[MAN_MSG_LENGTH];
+char domain_name[MAX_DNS_NAME_LENGTH];
 int host_to_ping;
-int n;
 
-printf("Enter id of host to ping: ");
-scanf("%d", &host_to_ping);
-n = sprintf(msg, "p %d", host_to_ping);
+int host_or_name;
+int n,k;
+printf("Ping by (1) Host ID or (2) Domain Name? \n");
+scanf("%d", &host_or_name);
 
-//printf("We sent %s to curr_host", msg);
+if(host_or_name == 2){
+	printf("Enter name of host to ping: ");
+	scanf("%s", domain_name);
+	k = strlen(domain_name);
+	domain_name[k] = '\0';
+	printf("name you entered: %s\n", domain_name);
+	n = sprintf(msg, "n %s", domain_name);
+	write(curr_host->send_fd, msg, n);
+	n = 0;
+	while (n <= 0) {
+		usleep(TENMILLISEC);
+		n = read(curr_host->recv_fd, reply, MAN_MSG_LENGTH);
+	}
+	reply[n] = '\0';
+	int ping_id = atoi(reply);
+//	printf("This is from Man\n received id: %d\n start ping job\n",ping_id);
+	n = sprintf(msg, "p %d", ping_id);
+	if(ping_id == curr_host->host_id){
+		printf("cannot ping itself\n");
+	}else if(ping_id < 0){
+		printf("This name has not registered\n");
+	}else{
+		write(curr_host->send_fd, msg, n);
+		n = 0;
+		while (n <= 0) {
+			usleep(TENMILLISEC);
+			n = read(curr_host->recv_fd, reply, MAN_MSG_LENGTH);
+		}
+		reply[n] = '\0';
+		printf("%s\n",reply);
+	}
+	
+}else if(host_or_name == 1){
+	printf("Enter id of host to ping: ");
+	scanf("%d", &host_to_ping);
+	n = sprintf(msg, "p %d", host_to_ping);
+	write(curr_host->send_fd, msg, n);
+	n = 0;
+	while (n <= 0) {
+		usleep(TENMILLISEC);
+		n = read(curr_host->recv_fd, reply, MAN_MSG_LENGTH);
+	}
+	reply[n] = '\0';
+	printf("%s\n",reply);
+	}else{printf("Invalid command\n");}
 
-write(curr_host->send_fd, msg, n);
-
-
-
-n = 0;
-while (n <= 0) {
-	usleep(TENMILLISEC);
-	n = read(curr_host->recv_fd, reply, MAN_MSG_LENGTH);
 }
-reply[n] = '\0';
-printf("%s\n",reply);
-}
 
+void register_domain_name(struct man_port_at_man *curr_host){
+	char msg[MAN_MSG_LENGTH];
+	char domain_name[MAX_DNS_NAME_LENGTH];
+	int n;
+	printf("Enter your domain name: (least than 50 characters)\n");
+	scanf("%s", domain_name);
+	n = sprintf(msg, "r %s", domain_name);
+//	printf("length of string %d\n",n);
+//	printf("%s\n", msg);
+	write(curr_host->send_fd, msg, n);
+}
 
 /*
  * Command host to send a file to another host.
@@ -223,6 +271,54 @@ printf("\n");
 n = sprintf(msg, "u %d %s", host_id, name);
 write(curr_host->send_fd, msg, n);
 usleep(TENMILLISEC);
+}
+
+int file_download(struct man_port_at_man *curr_host){
+	int n,k;
+	int host_id;
+	int host_or_name;
+	char domain_name[MAX_DNS_NAME_LENGTH];
+	char reply[MAN_MSG_LENGTH];
+	char name[NAME_LENGTH];
+	char msg[NAME_LENGTH];
+	printf("Download by (1) Host ID or (2) Domain Name? \n");
+	scanf("%d", &host_or_name);
+	if(host_or_name == 1){
+	printf("Enter file name to download: ");
+	scanf("%s", name);
+	printf("Enter host id of destination:  ");
+	scanf("%d", &host_id);
+	printf("\n");
+	n = sprintf(msg, "d %d %s", host_id, name);//send msg to host
+	write(curr_host->send_fd, msg, n);
+	usleep(TENMILLISEC);
+	
+	}else if(host_or_name == 2){
+//========
+	printf("Enter file name to download: ");
+	scanf("%s", name);
+	printf("Enter name of host to download: ");
+	scanf("%s", domain_name);
+	k = strlen(domain_name);
+	domain_name[k] = '\0';
+	printf("name you entered: %s\n", domain_name);
+	n = sprintf(msg, "n %s", domain_name);
+	write(curr_host->send_fd, msg, n);
+	n = 0;
+	while (n <= 0) {
+		usleep(TENMILLISEC);
+		n = read(curr_host->recv_fd, reply, MAN_MSG_LENGTH);
+	}
+	reply[n] = '\0';
+	int download_id = atoi(reply);
+//	printf("This is from Man\n received id: %d\n start ping job\n",download_id);
+	n = sprintf(msg, "d %d %s", download_id, name);
+	write(curr_host->send_fd, msg, n);
+	
+//========		
+	}else{printf("Invalid command\n");}
+	
+	
 }
 
 
@@ -268,7 +364,10 @@ while(1) {
 			file_upload(curr_host);
 			break;
 		case 'd': /* Download a file from a host */
-			printf("This command is not implemented\n");
+			file_download(curr_host);
+			break;
+		case 'r':
+			register_domain_name(curr_host);
 			break;
 		case 'q':  /* Quit */
 			return;
