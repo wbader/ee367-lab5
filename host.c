@@ -716,7 +716,7 @@ printf("domain name: %s\n", new_packet->payload);
 			
 //			free(new_job->packet);
 //			free(new_job);
-			break;
+		break;
 
 		case JOB_FILE_UPLOAD_RECV_END:
 
@@ -732,7 +732,7 @@ printf("domain name: %s\n", new_packet->payload);
 				file_buf_get_name(&f_buf_upload, string);
 				n = sprintf(name, "./%s/%s", dir, string);
 				name[n] = '\0';
-				printf("open file: %s\n", name);
+				//printf("open file: %s\n", name);
 				fp = fopen(name, "a+");
 
 				if (fp != NULL) {
@@ -753,8 +753,8 @@ printf("domain name: %s\n", new_packet->payload);
 				}	
 			}
 
-			break;
-//==================================DOWNLOAS===================================
+		break;
+//==================================DOWNLOAD===================================
 
 		case JOB_FILE_DOWNLOAD_SEND:
 
@@ -797,7 +797,9 @@ printf("domain name: %s\n", new_packet->payload);
 							malloc(sizeof(struct packet));
 						new_packet->dst 
 							= new_job->packet->src;
+						
 //printf("sent file to %d\n", new_packet->dst);
+						
 						new_packet->src = (char) host_id;
 						new_packet->type = PKT_FILE_DOWNLOAD_END;
 						n = fread(string,sizeof(char),PKT_PAYLOAD_MAX, fp);
@@ -821,9 +823,8 @@ printf("domain name: %s\n", new_packet->payload);
 			}else{
 				printf("Please set host's directory\n");
 			}
+			
 		break;
-
-
 
 		case JOB_FILE_DOWNLOAD_RECV_START:
 //printf("download recv start dir: %s\n",dir);
@@ -941,7 +942,7 @@ printf("domain name: %s\n", new_packet->payload);
 		break;
 }
 
-}//if job queue not empty
+	}//if job queue not empty
 
 	/* The host goes to sleep for 10 ms */
 	usleep(TENMILLISEC);

@@ -45,7 +45,7 @@ if (port->type == PIPE) {
 //		(int) p->dst);
 }
 if (port->type == SOCKET) {
-	printf("Making client\n");
+	//printf("Making client\n");
 	struct addrinfo hints, *servinfo, *pt;
 	char portName[6];
 	int i;
@@ -61,7 +61,7 @@ if (port->type == SOCKET) {
 	
 	sprintf(portName, "%d", port->socket_send_port);
 	
-	printf ("client %d: connecting to %s on port %s\n", p->src, port->domainAway, portName);
+	//printf ("client %d: connecting to %s on port %s\n", p->src, port->domainAway, portName);
 	
 	if ((rv = getaddrinfo(port->domainAway, portName, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));

@@ -533,7 +533,8 @@ void create_port_list()
 
 					if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
 						close(sockfd);
-						perror("server: bind");
+						printf("server %d: ",i);
+						perror("bind");
 						continue;
 					}
 
@@ -573,7 +574,7 @@ void create_port_list()
 						get_in_addr((struct sockaddr *)&their_addr),
 						s, sizeof s);
 					
-					// printf("server %d: got connection from %s\n", i, s);
+					//printf("server %d: got connection from %s\n", i, s);
 					
 					if ((pid3=fork())==0) // this is the child process
 					{ 
