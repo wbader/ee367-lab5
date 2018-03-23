@@ -126,7 +126,13 @@ int host_id;
 int n;
 
 msg[0] = 's';
+msg[1] = '\0';
+
+//printf("In display_host_state\n");
+
 write(curr_host->send_fd, msg, 1);
+
+//printf("Sent msg: %s\n", msg);
 
 n = 0;
 while (n <= 0) {
@@ -170,6 +176,7 @@ char msg[MAN_MSG_LENGTH];
 char reply[MAN_MSG_LENGTH];
 char domain_name[MAX_DNS_NAME_LENGTH];
 int host_to_ping;
+
 int host_or_name;
 int n,k;
 printf("Ping by (1) Host ID or (2) Domain Name? \n");
@@ -220,6 +227,7 @@ if(host_or_name == 2){
 	reply[n] = '\0';
 	printf("%s\n",reply);
 	}else{printf("Invalid command\n");}
+
 }
 
 void register_domain_name(struct man_port_at_man *curr_host){
