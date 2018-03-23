@@ -125,11 +125,11 @@ int n;
 msg[0] = 's';
 msg[1] = '\0';
 
-printf("In display_host_state\n");
+//printf("In display_host_state\n");
 
 write(curr_host->send_fd, msg, 1);
 
-printf("Sent msg: %s\n", msg);
+//printf("Sent msg: %s\n", msg);
 
 n = 0;
 while (n <= 0) {
