@@ -316,7 +316,7 @@ while(1) {
 
 			case 'p': // Sending ping request
 				// Create new ping request packet
-				printf("I should be pinging soon\n");
+				//printf("I should be pinging soon\n");
 				sscanf(man_msg, "%d", &dst);
 				new_packet = (struct packet *) 
 						malloc(sizeof(struct packet));	
