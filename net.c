@@ -26,6 +26,7 @@
 #include "host.h"
 #include "net.h"
 #include "packet.h"
+#include "switch.h"
 
 
 #define MAX_FILE_NAME 100
@@ -350,7 +351,8 @@ int i;
 g_node_list = NULL;
 for (i=0; i<g_net_node_num; i++) {
 	p = (struct net_node *) malloc(sizeof(struct net_node));
-	p->id = i;
+	//p->id = i;
+	p->id = g_net_node[i].id;      //change
 	p->type = g_net_node[i].type;
 	p->next = g_node_list;
 	g_node_list = p;
@@ -374,18 +376,15 @@ int i;
 g_port_list = NULL;
 for (i=0; i<g_net_link_num; i++) {
 	if (g_net_link[i].type == PIPE) {
-
+		
 		node0 = g_net_link[i].pipe_node0;
 		node1 = g_net_link[i].pipe_node1;
-
 		p0 = (struct net_port *) malloc(sizeof(struct net_port));
 		p0->type = g_net_link[i].type;
 		p0->pipe_host_id = node0;
-
 		p1 = (struct net_port *) malloc(sizeof(struct net_port));
 		p1->type = g_net_link[i].type;
 		p1->pipe_host_id = node1;
-
 		pipe(fd01);  /* Create a pipe */
 			/* Make the pipe nonblocking at both ends */
    		fcntl(fd01[PIPE_WRITE], F_SETFL, 
@@ -458,20 +457,19 @@ else {
 	for (i=0; i<node_num; i++) { 
 		fscanf(fp, " %c ", &node_type);
 
-		if (node_type = 'H') {
+		if (node_type == 'H') {
 			fscanf(fp, " %d ", &node_id);
 			g_net_node[i].type = HOST;
 			g_net_node[i].id = node_id;
+			printf("find H\n");
 		}
-		else {
-			printf(" net.c: Unidentified Node Type\n");
+		else if (node_type == 'S') {
+			fscanf(fp, " %d ", &node_id);
+			g_net_node[i].type = SWITCH;
+			g_net_node[i].id = node_id;
+			printf("find S\n");
 		}
 
-		if (i != node_id) {
-			printf(" net.c: Incorrect node id\n");
-			fclose(fp);
-			return(0);
-		}
 	}
 }
 	/* 
@@ -520,7 +518,7 @@ for (i=0; i<g_net_node_num; i++) {
 	        printf("   Node %d HOST\n", g_net_node[i].id);
 	}
 	else if (g_net_node[i].type == SWITCH) {
-		printf(" SWITCH\n");
+		printf(" Node %d SWITCH\n",g_net_node[i].id);
 	}
 	else {
 		printf(" Unknown Type\n");
