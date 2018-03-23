@@ -114,6 +114,7 @@ if (port->type == SOCKET) {
 	//msg[3] = 't';
 	//msg[4] = '\0';
 	
+	/*
 	printf("Sending: %d%d%d%d%d%d%d%d\n", 	(int) msg[0],
 											(int) msg[1],
 											(int) msg[2],
@@ -123,16 +124,18 @@ if (port->type == SOCKET) {
 											(int) msg[6],
 											(int) msg[7]);
 	
+	*/
+	/*
 	printf("PACKET SEND, src=%d dst=%d p-src=%d p-dst=%d\n", 
 		(int) msg[0], 
 		(int) msg[1], 
 		(int) p->src, 
 		(int) p->dst);
-	
+	*/
 
 	
 	int x = send(sockfd, msg, PAYLOAD_MAX+4, 0);
-	printf("Sent %d bytes\n", x);
+	// printf("Sent %d bytes\n", x);
 	
 }
 return;
@@ -154,12 +157,13 @@ if (port->type == PIPE || port->type == SOCKET) {
 		for (i=0; i<p->length; i++) {
 			p->payload[i] = msg[i+4];
 		}
-
+/*
  printf("PACKET RECV, src=%d dst=%d p-src=%d p-dst=%d\n", 
 		(int) msg[0], 
 		(int) msg[1], 
 		(int) p->src, 
 		(int) p->dst);
+*/
 	}
 }
 
