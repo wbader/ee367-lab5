@@ -17,7 +17,9 @@ enum host_job_type {
 	JOB_SEND_ID_BACK,
 	JOB_FILE_DOWNLOAD_RECV_MID,//--------for Switch
 	JOB_FILE_UPLOAD_RECV_START,
-	JOB_FILE_UPLOAD_RECV_END
+	JOB_FILE_UPLOAD_RECV_END,
+	JOB_TREE_SEND,
+	JOB_TREE_RECV
 };
 
 struct host_job {
