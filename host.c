@@ -30,6 +30,8 @@
 #define MAX_DNS_TABLE 10
 #define MAX_DNS_NAME_LENGTH 50
 
+#define LOOPS_BEFORE_TREE_PACKET 10
+
 /* Types of packets */
 
 struct file_buf {
@@ -321,7 +323,37 @@ for (k = 0; k < node_port_num; k++) {
 /* Initialize the job queue */
 job_q_init(&job_q);
 
+int count = 0;
+
 while(1) {
+	
+	if (count <= 0)
+	{
+		// setup tree job
+		new_job = (struct host_job *) malloc(sizeof(struct host_job));
+		new_job->type = JOB_SEND_PKT_ALL_PORTS;
+		
+		// setup tree packet
+		new_packet = (struct packet *) malloc(sizeof(struct packet));
+		new_packet->type = (char) PKT_TREE;
+		new_packet->src = (char) host_id;
+		new_packet->length = 4;
+		
+		new_packet->payload[0]=(char) host_id;
+		new_packet->payload[1]=(char) 255;
+		new_packet->payload[2]= 'H';  // we're a H
+				
+		new_job->packet = new_packet;
+		
+		// add the job to the queue
+		job_q_add(&job_q, new_job);
+		
+		//reset the count
+		count = LOOPS_BEFORE_TREE_PACKET;
+	} else {
+		count--;
+	}
+
 	/* Execute command from manager, if any */
 
 		/* Get command from manager */
@@ -533,6 +565,8 @@ printf("domain name: %s\n", new_packet->payload);
 					job_q_add(&job_q, new_job);
 					break;	
 //=========================================================	
+				//case (char) JOB_TREE_SEND:
+					
 				default:
 					free(in_packet);
 					free(new_job);
@@ -612,8 +646,7 @@ printf("domain name: %s\n", new_packet->payload);
 			}
 
 			break;	
-
-
+		
 		/* The next three jobs deal with uploading a file */
 
 			/* This job is for the sending host */

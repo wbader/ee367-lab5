@@ -29,7 +29,7 @@
 #define PORT 2
 #define MAX_SIZE_TABLE 10
 
-#define LOOPS_BEFORE_TREE_PACKET = 10
+#define LOOPS_BEFORE_TREE_PACKET 10
 
 void initialize_table(int forwarding_table[][MAX_SIZE_TABLE]){
 	int i,j;
@@ -94,7 +94,7 @@ for (k = 0; k < node_port_num; k++) {
 job_q_init(&job_q);
 
 int count = 0;
-
+int doublecount = 0;
 while(1) {
 
 	// Send a tree packet only once every x times through the loop
@@ -108,11 +108,24 @@ while(1) {
 		new_packet = (struct packet *) malloc(sizeof(struct packet));
 		new_packet->type = (char) PKT_TREE;
 		new_packet->src = (char) switch_id;
+		new_packet->length = 4;
 		
-		new_packet->.payload[0]=(char) localRootID;
-		new_packet->.payload[1]=(char) localRootDist;
-		new_packet->.payload[2]= 'S';  // we're a switch
+		new_packet->payload[0]=(char) localRootID;
+		new_packet->payload[1]=(char) localRootDist;
+		new_packet->payload[2]= 'S';  // we're a switch
 		// new_packet->.payload[3] depends on who our parent is
+/* 		
+		if(switch_id = 6)
+				{
+					//printf("Switch%d's localRootID is %d\n", switch_id, localRootID);
+					printf("Switch%d sent the following payload:\n", switch_id);
+					printf("  Payload[0] (localRootID) = %d\n", (int) new_packet->payload[0]);
+					printf("  Payload[1] (localRootDist) = %d\n", (int) new_packet->payload[1]);
+					printf("  Payload[2] (node type) = %c\n", new_packet->payload[2]);
+					//printf("  Payload[3] (is Parent?) = %c\n", newpacket->payload[3]);
+				}
+ */
+		
 		
 		new_job->packet = new_packet;
 		
@@ -121,6 +134,19 @@ while(1) {
 		
 		//reset the count
 		count = LOOPS_BEFORE_TREE_PACKET;
+		doublecount++;
+		if (doublecount == 50)
+		{
+			//printf("The tree table for Switch %d is as follows:\n", switch_id);
+			for(int i = 0; i < net_getNumberOfNodes(); i++)
+			{
+				if(localPortTree[i] == 1)
+					printf("Node %d is part of Switch %d's tree\n", i, switch_id);
+			}
+			
+			printf("Switch%d's parent is Node%d\n",switch_id, localParent);
+		}
+		
 	} else {
 		count--;
 	}
@@ -169,7 +195,7 @@ while(1) {
 					}else{//try
 						//printf("Switch sends job to all ports");
 						for (k=0; k<node_port_num; k++) {
-							if(new_job->in_port_index != k)	packet_send(node_port[k], new_job->packet);
+							if(new_job->in_port_index != k && localPortTree[k] == 1)	packet_send(node_port[k], new_job->packet);
 						}
 					}
 					if(src < 0){
@@ -184,6 +210,17 @@ while(1) {
 				
 				case JOB_TREE_RECV:
 					//TODO: Add stuff to learn
+ 					/* 
+					if(switch_id = 6)
+					{
+						//printf("Switch%d's localRootID is %d\n", switch_id, localRootID);
+						printf("Switch%d received the following payload:\n", switch_id);
+						printf("  Payload[0] (localRootID) = %d\n", (int) new_job->packet->payload[0]);
+						printf("  Payload[1] (localRootDist) = %d\n", (int) new_job->packet->payload[1]);
+						printf("  Payload[2] (node type) = %c\n", new_job->packet->payload[2]);
+						printf("  Payload[3] (is Parent?) = %c\n", new_job->packet->payload[3]);
+					} 
+					 */
 					if (new_job->packet->payload[2] == 'S')  // The tree packet came from a switch
 					{
 						if ((int) new_job->packet->payload[0] < localRootID)  // Found a better root
@@ -196,7 +233,7 @@ while(1) {
 						{
 							if (localRootDist > (int) new_job->packet->payload[1] + 1) // but it is closer this way
 							{
-								localParent = localParent = (int) new_job->packet->src;
+								localParent = (int) new_job->packet->src;
 								localRootDist = (int) new_job->packet->payload[1] + 1;
 							}
 						}
@@ -212,13 +249,16 @@ while(1) {
 						if (localParent == (int) new_job->packet->src) // if it's our parent it's part of the tree
 							localPortTree[(int) new_job->packet->src] = 1;
 						else if (new_job->packet->payload[3] == 'Y') // if it's our child it's part of the tree
+						{
 							localPortTree[(int) new_job->packet->src] = 1;
+							printf("I'm a pround parent!%d",switch_id);
+						}
 						else
 							localPortTree[(int) new_job->packet->src] = 0; // if it's neither it isn't part of our tree
 					}
 					else
 						localPortTree[(int) new_job->packet->src] = 0; // broken base case, shouldn't get here ever
-					}
+					
 				break;
 				
 				case JOB_TREE_SEND:
@@ -226,11 +266,23 @@ while(1) {
 					// set new_job->new_packet->.payload[3] to 'Y' if localParent == the destination id, or 'N' otherwise
 					for (k=0; k<node_port_num; k++) 
 					{
-						printf("Sending a Tree Packet to %d\n", node_port[k]->pipe_host_id);
+						//printf("Sending a Tree Packet to %d\n", node_port[k]->pipe_host_id);
+
 						if (localParent == node_port[k]->pipe_host_id)
-							new_job->new_packet->.payload[3] = 'Y';
+							new_job->packet->payload[3] = 'Y';
 						else
-							new_job->new_packet->.payload[3] = 'N';
+							new_job->packet->payload[3] = 'N';
+ 						
+						if(switch_id = 6)
+						{
+							//printf("Switch%d's localRootID is %d\n", switch_id, localRootID);
+							printf("Switch%d sent the following payload:\n", switch_id);
+							printf("  Payload[0] (localRootID) = %d\n", (int) new_packet->payload[0]);
+							printf("  Payload[1] (localRootDist) = %d\n", (int) new_packet->payload[1]);
+							printf("  Payload[2] (node type) = %c\n", new_packet->payload[2]);
+							printf("  Payload[3] (is Parent?) = %c\n", new_packet->payload[3]);
+						}
+						 
 						packet_send(node_port[k], new_job->packet);
 					}
 				break;
