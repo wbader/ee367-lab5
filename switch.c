@@ -121,6 +121,7 @@ while(1) {
 		
 		//reset the count
 		count = LOOPS_BEFORE_TREE_PACKET;
+		/* This was for a test
 		doublecount++;
 		if (doublecount == 50)
 		{
@@ -134,6 +135,7 @@ while(1) {
 			
 			printf("Switch%d's parent is Node%d\n",switch_id, localParent);
 		}
+		*/
 		
 	} else {
 		count--;
