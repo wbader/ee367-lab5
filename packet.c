@@ -64,7 +64,7 @@ if (port->type == SOCKET) {
 	//printf ("client %d: connecting to %s on port %s\n", p->src, port->domainAway, portName);
 	
 	if ((rv = getaddrinfo(port->domainAway, portName, &hints, &servinfo)) != 0) {
-		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		fprintf(stderr, "packet.c: getaddrinfo: %s\n", gai_strerror(rv));
 		return;
 	}
 	
