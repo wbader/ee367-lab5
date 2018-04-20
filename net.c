@@ -44,7 +44,6 @@
 #define PIPE_WRITE 1
 #define BACKLOG 10
 
-enum bool {FALSE, TRUE};
 
 /* 
  * Struct used to store a link. It is used when the 
@@ -96,6 +95,8 @@ static enum bool g_initialized = FALSE; /* Network initialized? */
 static struct net_node *g_net_node;
 static int g_net_node_num;
 static struct net_node *g_node_list = NULL;
+
+int net_getNumberOfNodes() {return g_net_node_num;}
 
 /* 
  * g_net_link[] and g_net_link_num have link information from
