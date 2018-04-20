@@ -27,7 +27,7 @@
 #define VALID 0
 #define DESTINATION 1
 #define PORT 2
-#define MAX_SIZE_TABLE 5
+#define MAX_SIZE_TABLE 100
 
 #define LOOPS_BEFORE_TREE_PACKET 10
 
@@ -114,20 +114,6 @@ while(1) {
 		new_packet->payload[0]=(char) localRootID;
 		new_packet->payload[1]=(char) localRootDist;
 		new_packet->payload[2]= 'S';  // we're a switch
-		// new_packet->.payload[3] depends on who our parent is
-/* 		
-		if(switch_id = 6)
-				{
-					//printf("Switch%d's localRootID is %d\n", switch_id, localRootID);
-					printf("Switch%d sent the following payload:\n", switch_id);
-					printf("  Payload[0] (localRootID) = %d\n", (int) new_packet->payload[0]);
-					printf("  Payload[1] (localRootDist) = %d\n", (int) new_packet->payload[1]);
-					printf("  Payload[2] (node type) = %c\n", new_packet->payload[2]);
-					//printf("  Payload[3] (is Parent?) = %c\n", newpacket->payload[3]);
-				}
- */
-		
-		
 		new_job->packet = new_packet;
 		
 		// add the job to the queue
@@ -205,16 +191,11 @@ while(1) {
 						}else{//try
 							printf("Switch sends job to all ports");
 							for (k=0; k<node_port_num; k++) {
-
-							//	if(new_job->in_port_index != k && localPortTree[k] == 1)
-						
-								printf("print that [things]: %d\n",node_port[k]->pipe_host_id );
-								printf("node port: %d\n", k );
-							//	if(localPortTree[node_port[k]->pipe_host_id] == 1 ) 
-							//	if(localPortTree[k] != 0){
-								if(new_job->in_port_index != k && localPortTree[k] == 1)	packet_send(node_port[k], new_job->packet);
-									printf("sent\n");
-							//	} 
+								//if(new_job->in_port_index != k && localPortTree[k] == 1)
+								if( new_job->in_port_index != k && localPortTree[k] == 1)	{
+									packet_send(node_port[k], new_job->packet);
+									printf("sent to port %d, and it is in the tree\n",k);
+								} 
 							}
 						}
 						if(src < 0 ){
@@ -235,24 +216,12 @@ while(1) {
 					break;
 				
 				case JOB_TREE_RECV:
-					//TODO: Add stuff to learn
- 					/* 
-					if(switch_id = 6)
-					{
-						//printf("Switch%d's localRootID is %d\n", switch_id, localRootID);
-						printf("Switch%d received the following payload:\n", switch_id);
-						printf("  Payload[0] (localRootID) = %d\n", (int) new_job->packet->payload[0]);
-						printf("  Payload[1] (localRootDist) = %d\n", (int) new_job->packet->payload[1]);
-						printf("  Payload[2] (node type) = %c\n", new_job->packet->payload[2]);
-						printf("  Payload[3] (is Parent?) = %c\n", new_job->packet->payload[3]);
-					} 
-					 */
 					if (new_job->packet->payload[2] == 'S')  // The tree packet came from a switch
 					{
 						if ((int) new_job->packet->payload[0] < localRootID)  // Found a better root
 						{
 							localRootID = (int) new_job->packet->payload[0];
-						//	if(localParent != -1 )  localPortTree[localParent]=0;  //0->1
+							if(localParent != -1 )  localPortTree[localParent]=0;  //0->1
 							localParent = new_job->in_port_index;
 							localRootDist = (int) new_job->packet->payload[1] + 1;
 						} 
@@ -260,7 +229,7 @@ while(1) {
 						{
 							if (localRootDist > (int) new_job->packet->payload[1] + 1) // but it is closer this way
 							{
-					//			if(localParent != -1 )localPortTree[localParent]=0;  //0->1
+								if(localParent != -1 )localPortTree[localParent]=0;  //0->1
 								localParent = new_job->in_port_index;
 								localRootDist = (int) new_job->packet->payload[1] + 1;
 							}
@@ -279,7 +248,6 @@ while(1) {
 						else if (new_job->packet->payload[3] == 'Y') // if it's our child it's part of the tree
 						{
 							localPortTree[new_job->in_port_index] = 1;
-							printf("I'm a pround parent!%d",switch_id);
 						}
 						else
 							localPortTree[new_job->in_port_index] = 0; // if it's neither it isn't part of our tree
@@ -296,7 +264,7 @@ while(1) {
 					{
 						//printf("Sending a Tree Packet to %d\n", node_port[k]->pipe_host_id);
 
-						if (localParent == node_port[k]->pipe_host_id)
+						if (localParent == k)
 							new_job->packet->payload[3] = 'Y';
 						else
 							new_job->packet->payload[3] = 'N';
