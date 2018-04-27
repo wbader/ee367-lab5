@@ -404,6 +404,7 @@ while(1) {
 //============  Register domain name =================
 			case 'r':
 				sscanf(man_msg, "%s", domain_name);
+printf("received register request %s\n", domain_name);
 				new_packet = (struct packet*) malloc(sizeof(struct packet));
 				new_packet->src = (char) host_id;
 				new_packet->dst = DNS_SERVER;
@@ -412,7 +413,7 @@ while(1) {
 					new_packet->payload[i] = domain_name[i];
 				}
 				new_packet->length = i;
-//printf("domain name: %s\n", new_packet->payload);
+printf("domain name: %s\n", new_packet->payload);
 				new_job = (struct host_job *) malloc(sizeof(struct host_job));
 				new_job->packet = new_packet;
 				new_job->type = JOB_SEND_PKT_ALL_PORTS;
@@ -428,7 +429,9 @@ while(1) {
 				for (i=0; domain_name[i] != '\0'; i++) {
 					new_packet->payload[i] = domain_name[i];
 				}
+				new_packet->payload[i]='\0';
 				new_packet->length = i;
+				
 printf("domain name: %s\n", new_packet->payload);
 				new_job = (struct host_job *) malloc(sizeof(struct host_job));
 				new_job->packet = new_packet;
@@ -915,9 +918,17 @@ printf("domain name: %s\n", new_packet->payload);
 				}
 				i++;
 			}
-			strcpy (DNS_Table[i].domain_name , new_job->packet->payload);	
+			
+			memset(DNS_Table[i].domain_name, 0, 50);
+			new_job->packet->payload[new_job->packet->length] = '\0';
+			strcpy (DNS_Table[i].domain_name , new_job->packet->payload);
+			
 			DNS_Table[i].id = new_job->packet->src;
 			DNS_Table[i].valid = 1;
+	//		memset(domain_name, 0, MAX_DNS_NAME_LENGTH);
+	//		memset(new_job->packet->payload, 0 , 100);
+	//		printf("length: %d\n", new_job->packet->length);
+			
 			printf("register %d as %s \n", new_job->packet->src, new_job->packet->payload );
 //			print_DNS_table(DNS_Table);
 	

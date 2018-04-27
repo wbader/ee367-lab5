@@ -60,6 +60,7 @@ int node_port_num;            // Number of node ports
 int localRootID = switch_id;
 int localRootDist = 0;
 int localParent = -1;
+
 int *localPortTree = malloc(node_port_num* sizeof(int));
 memset(localPortTree, 0, node_port_num);
 
@@ -121,7 +122,6 @@ while(1) {
 		
 		//reset the count
 		count = LOOPS_BEFORE_TREE_PACKET;
-		/* This was for a test
 		doublecount++;
 		if (doublecount == 50)
 		{
@@ -129,13 +129,12 @@ while(1) {
 			int i;
 			for( i = 0; i < net_getNumberOfNodes(); i++)
 			{	
-				if(localPortTree[i] == 1)
-					printf("Node %d is part of Switch %d's tree\n", i, switch_id);
+			//	if(localPortTree[i] == 1)
+				//	printf("Node %d is part of Switch %d's tree\n", i, switch_id);
 			}
 			
-			printf("Switch%d's parent is Node%d\n",switch_id, localParent);
+		//	printf("Switch%d's parent is Node%d\n",switch_id, localParent);
 		}
-		*/
 		
 	} else {
 		count--;
@@ -168,7 +167,7 @@ while(1) {
 				case JOB_SWITCH:
 					//====  packet->type = (char) PKT_TREE  or regular  =====
 					if(new_job->packet->type == (char) PKT_TREE){
-						printf("Switch sends job to all ports");
+				//		printf("Switch sends job to all ports");
 						for (k=0; k<node_port_num; k++) {
 						//	if(new_job->in_port_index != k && localPortTree[k] == 1)
 						//	if(new_job->in_port_index != k) 
@@ -179,33 +178,33 @@ while(1) {
 						while(forwarding_table[VALID][i]!=0){
 							if((forwarding_table[DESTINATION][i] == new_job->packet->src) &&(new_job->in_port_index == forwarding_table[PORT][i])){
 								src = forwarding_table[DESTINATION][i];
-								printf("find record host : %d \n", src);
+				//				printf("find record host : %d \n", src);
 							}
 							if(forwarding_table[DESTINATION][i] == new_job->packet->dst){
 								target = forwarding_table[PORT][i];
-								printf("find target host's port : %d \n", target);
+				//				printf("find target host's port : %d \n", target);
 							}
 							i++;
 						}
 						if(target >= 0){
-							printf("Send job to %d \n", target);
+				//			printf("Send job to %d \n", target);
 							packet_send(node_port[target], new_job->packet);
 						}else{//try
-							printf("Switch sends job to all ports");
+				//			printf("Switch sends job to all ports");
 							for (k=0; k<node_port_num; k++) {
 								//if(new_job->in_port_index != k && localPortTree[k] == 1)
 								if( new_job->in_port_index != k && localPortTree[k] == 1)	{
 									packet_send(node_port[k], new_job->packet);
-									printf("sent to port %d, and it is in the tree\n",k);
+				//					printf("sent to port %d, and it is in the tree\n",k);
 								} 
 							}
 						}
 						if(src < 0 ){
 							forwarding_table[VALID][i] = 1;
 							forwarding_table[DESTINATION][i] = new_job->packet->src;
-							printf("add src %d to table \n", new_job->packet->src);
+				//			printf("add src %d to table \n", new_job->packet->src);
 							forwarding_table[PORT][i] = new_job->in_port_index;
-							printf("add port %d to table \n", new_job->in_port_index);
+				//			printf("add port %d to table \n", new_job->in_port_index);
 							table_size ++;
 						}
 					
@@ -282,6 +281,8 @@ while(1) {
 						}
 						 */
 						packet_send(node_port[k], new_job->packet);
+						
+						memset(new_job->packet, 0, 100);
 					}
 				break;
 			}
