@@ -53,3 +53,5 @@ struct packet { /* struct for a packet */
 #define PKT_DOMAIN_NAME 8
 #define PKT_PING_DOMAIN_NAME 9
 #define PKT_DOMAIN_REPLY 10
+
+#define PKT_TREE 11				// add Tree packets

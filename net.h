@@ -1,4 +1,7 @@
-
+/*
+ * net.h
+ */
+enum bool {FALSE, TRUE};
 
 int net_init();
 
