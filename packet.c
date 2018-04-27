@@ -1,27 +1,14 @@
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
-
-#define _GNU_SOURCE
 #include <fcntl.h>
-#include <unistd.h>
+#include <sys/types.h>
 
 #include "main.h"
-#include "man.h"
-#include "host.h"
-#include "net.h"
 #include "packet.h"
+#include "net.h"
+#include "host.h"
 
 
 void packet_send(struct net_port *port, struct packet *p)
@@ -44,6 +31,7 @@ if (port->type == PIPE) {
 //		(int) p->src, 
 //		(int) p->dst);
 }
+=======
 if (port->type == SOCKET) {
 	//printf("Making client\n");
 	struct addrinfo hints, *servinfo, *pt;
@@ -133,11 +121,6 @@ if (port->type == SOCKET) {
 		(int) p->dst);
 	*/
 
-	
-	int x = send(sockfd, msg, PAYLOAD_MAX+4, 0);
-	// printf("Sent %d bytes\n", x);
-	
-}
 return;
 }
 
@@ -147,7 +130,7 @@ char msg[PAYLOAD_MAX+4];
 int n;
 int i;
 	
-if (port->type == PIPE || port->type == SOCKET) {
+if (port->type == PIPE) {
 	n = read(port->pipe_recv_fd, msg, PAYLOAD_MAX+4);
 	if (n>0) {
 		p->src = (char) msg[0];
@@ -157,13 +140,12 @@ if (port->type == PIPE || port->type == SOCKET) {
 		for (i=0; i<p->length; i++) {
 			p->payload[i] = msg[i+4];
 		}
-/*
- printf("PACKET RECV, src=%d dst=%d p-src=%d p-dst=%d\n", 
-		(int) msg[0], 
-		(int) msg[1], 
-		(int) p->src, 
-		(int) p->dst);
-*/
+
+// printf("PACKET RECV, src=%d dst=%d p-src=%d p-dst=%d\n", 
+//		(int) msg[0], 
+//		(int) msg[1], 
+//		(int) p->src, 
+//		(int) p->dst);
 	}
 }
 

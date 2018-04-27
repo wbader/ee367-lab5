@@ -147,15 +147,8 @@ int n;
 int i;
 int k;
 
-//printf("In get_man_command\n");
-
 n = read(port->recv_fd, msg, MAN_MSG_LENGTH); /* Get command from manager */
-
-//printf("%d\n", n);
-
 if (n>0) {  /* Remove the first char from "msg" */
-	// printf("In get_man_command\nReceived %s\n", msg);
-	
 	for (i=0; msg[i]==' ' && i<n; i++);
 	*c = msg[i];
 	i++;
@@ -379,7 +372,6 @@ while(1) {
 
 			case 'p': // Sending ping request
 				// Create new ping request packet
-				//printf("I should be pinging soon\n");
 				sscanf(man_msg, "%d", &dst);
 				new_packet = (struct packet *) 
 						malloc(sizeof(struct packet));	
@@ -403,35 +395,48 @@ while(1) {
 				break;
 //============  Register domain name =================
 			case 'r':
+				memset(domain_name, 0, MAX_DNS_NAME_LENGTH);
+				int i = 0;
+				
 				sscanf(man_msg, "%s", domain_name);
+				
+			
 				new_packet = (struct packet*) malloc(sizeof(struct packet));
 				new_packet->src = (char) host_id;
 				new_packet->dst = DNS_SERVER;
 				new_packet->type = (char) PKT_DOMAIN_NAME;
+				memset(new_packet->payload, 0 , 100);
+				printf("d n: %s\n ", domain_name);
+				for(i=0;i<6; i++){printf("%c", domain_name[i]);}
 				for (i=0; domain_name[i] != '\0'; i++) {
 					new_packet->payload[i] = domain_name[i];
 				}
 				new_packet->length = i;
-//printf("domain name: %s\n", new_packet->payload);
+				printf("length of payload: %d\n", i);
+printf("domain name in 'case r': %s\n", new_packet->payload);
 				new_job = (struct host_job *) malloc(sizeof(struct host_job));
 				new_job->packet = new_packet;
 				new_job->type = JOB_SEND_PKT_ALL_PORTS;
+				memset(domain_name, 0, MAX_DNS_NAME_LENGTH);
 				job_q_add(&job_q, new_job);
 			break;
 //====DNS ping	===
 			case 'n':
 				sscanf(man_msg, "%s", domain_name);
+				printf("msg from man : %s\n", domain_name);
 				new_packet = (struct packet*) malloc(sizeof(struct packet));
 				new_packet->src = (char) host_id;
 				new_packet->dst = DNS_SERVER;
 				new_packet->type = (char) PKT_PING_DOMAIN_NAME;
+				memset(new_packet->payload, 0 , 100);
 				for (i=0; domain_name[i] != '\0'; i++) {
 					new_packet->payload[i] = domain_name[i];
 				}
 				new_packet->length = i;
-printf("domain name: %s\n", new_packet->payload);
+				printf("domain name 'case n' : %s\n", new_packet->payload);
 				new_job = (struct host_job *) malloc(sizeof(struct host_job));
 				new_job->packet = new_packet;
+				printf("new job packet 'case n' : %s\n", new_job->packet->payload);
 				new_job->type = JOB_SEND_PKT_ALL_PORTS;
 				job_q_add(&job_q, new_job);
 				
@@ -511,8 +516,8 @@ printf("domain name: %s\n", new_packet->payload);
 
 				case (char) PKT_PING_REPLY:
 					ping_reply_received = 1;
-		//			free(in_packet);
-		//			free(new_job);
+					free(in_packet);
+					free(new_job);
 					break;
 //=========domain=====
 
@@ -523,6 +528,7 @@ printf("domain name: %s\n", new_packet->payload);
 				
 				case (char)	PKT_PING_DOMAIN_NAME:
 					new_job->type = JOB_REQ_ID_BY_NAME;
+					printf("pkt ping domain name : %s", new_job->packet->payload);
 					job_q_add(&job_q, new_job);
 				break;
 				
@@ -595,8 +601,8 @@ printf("domain name: %s\n", new_packet->payload);
 			for (k=0; k<node_port_num; k++) {
 				packet_send(node_port[k], new_job->packet);
 			}
-//			free(new_job->packet);
-//			free(new_job);
+			free(new_job->packet);
+			free(new_job);
 			break;
 
 		/* The next three jobs deal with the pinging process */
@@ -621,8 +627,8 @@ printf("domain name: %s\n", new_packet->payload);
 			job_q_add(&job_q, new_job2);
 
 			/* Free old packet and job memory space */
-//			free(new_job->packet);
-//			free(new_job);
+			free(new_job->packet);
+			free(new_job);
 			break;
 
 		case JOB_PING_WAIT_FOR_REPLY:
@@ -632,7 +638,7 @@ printf("domain name: %s\n", new_packet->payload);
 				n = sprintf(man_reply_msg, "Ping acked!"); 
 				man_reply_msg[n] = '\0';
 				write(man_port->send_fd, man_reply_msg, n+1);
-//				free(new_job);
+				free(new_job);
 			}
 			else if (new_job->ping_timer > 1) {
 				new_job->ping_timer--;
@@ -642,7 +648,7 @@ printf("domain name: %s\n", new_packet->payload);
 				n = sprintf(man_reply_msg, "Ping time out!"); 
 				man_reply_msg[n] = '\0';
 				write(man_port->send_fd, man_reply_msg, n+1);
-//				free(new_job);
+				free(new_job);
 			}
 
 			break;	
@@ -727,8 +733,8 @@ printf("domain name: %s\n", new_packet->payload);
 					}
 					fclose(fp);
 				//  common out this Don't know why
-//					free(new_job->packet);
-//					free(new_job);
+					free(new_job->packet);
+					free(new_job);
 				}
 				else {  
 					/* Didn't open file */
@@ -747,9 +753,9 @@ printf("domain name: %s\n", new_packet->payload);
 				new_job->packet->payload, 
 				new_job->packet->length);
 			
-//			free(new_job->packet);
-//			free(new_job);
-		break;
+			free(new_job->packet);
+			free(new_job);
+			break;
 
 		case JOB_FILE_UPLOAD_RECV_END:
 
@@ -757,15 +763,15 @@ printf("domain name: %s\n", new_packet->payload);
 				new_job->packet->payload,
 				new_job->packet->length);
 
-//			free(new_job->packet);
-//			free(new_job);
+			free(new_job->packet);
+			free(new_job);
 
 			if (dir_valid == 1) {
 
 				file_buf_get_name(&f_buf_upload, string);
 				n = sprintf(name, "./%s/%s", dir, string);
 				name[n] = '\0';
-				//printf("open file: %s\n", name);
+				printf("open file: %s\n", name);
 				fp = fopen(name, "a+");
 
 				if (fp != NULL) {
@@ -786,8 +792,8 @@ printf("domain name: %s\n", new_packet->payload);
 				}	
 			}
 
-		break;
-//==================================DOWNLOAD===================================
+			break;
+//==================================DOWNLOAS===================================
 
 		case JOB_FILE_DOWNLOAD_SEND:
 
@@ -830,9 +836,7 @@ printf("domain name: %s\n", new_packet->payload);
 							malloc(sizeof(struct packet));
 						new_packet->dst 
 							= new_job->packet->src;
-						
 //printf("sent file to %d\n", new_packet->dst);
-						
 						new_packet->src = (char) host_id;
 						new_packet->type = PKT_FILE_DOWNLOAD_END;
 						n = fread(string,sizeof(char),PKT_PAYLOAD_MAX, fp);
@@ -850,14 +854,15 @@ printf("domain name: %s\n", new_packet->payload);
 						job_q_add(&job_q, new_job2);
 					}
 					fclose(fp);
-//					free(new_job->packet);
-//					free(new_job);
+					free(new_job->packet);
+					free(new_job);
 				}
 			}else{
 				printf("Please set host's directory\n");
 			}
-			
 		break;
+
+
 
 		case JOB_FILE_DOWNLOAD_RECV_START:
 //printf("download recv start dir: %s\n",dir);
@@ -869,16 +874,16 @@ printf("domain name: %s\n", new_packet->payload);
 //printf("packey payload: %s\n", new_job->packet->payload);
 //printf("name length: %d\n", new_job->packet->length);
 
-//			free(new_job->packet);
-//			free(new_job);
+			free(new_job->packet);
+			free(new_job);
 		break;
 		
 		case JOB_FILE_DOWNLOAD_RECV_END:
 //printf("download content: %s\n", new_job->packet->payload);		
 			file_buf_add(&f_buf_download, new_job->packet->payload,new_job->packet->length);
 
-//			free(new_job->packet);
-//			free(new_job);
+			free(new_job->packet);
+			free(new_job);
 
 			if (dir_valid == 1) {
 //printf("download recv end dir: %s\n",dir);
@@ -910,17 +915,22 @@ printf("domain name: %s\n", new_packet->payload);
 			while(DNS_Table[i].valid != 0){
 				if(new_job->packet->src == DNS_Table[i].id) {
 					//domain_id = DNS_Table[i].id;
-					i++;
+				//	i++;
 					break;
 				}
 				i++;
 			}
-			strcpy (DNS_Table[i].domain_name , new_job->packet->payload);	
+			memset(DNS_Table[i].domain_name, 0, 50);
+			strncpy (DNS_Table[i].domain_name , new_job->packet->payload, new_job->packet->length);	//try don't use strcyp.
 			DNS_Table[i].id = new_job->packet->src;
 			DNS_Table[i].valid = 1;
-			printf("register %d as %s \n", new_job->packet->src, new_job->packet->payload );
-//			print_DNS_table(DNS_Table);
-	
+	//		printf("register %d as %s \n", new_job->packet->src, DNS_Table[i].domain_name );
+			print_DNS_table(DNS_Table);
+			memset(domain_name, 0, MAX_DNS_NAME_LENGTH);
+			memset(new_job->packet->payload, 0 , 100);
+			free(new_job->packet);
+			free(new_job);
+				
 		break;	
 		
 		case JOB_REQ_ID_BY_NAME:
@@ -928,6 +938,7 @@ printf("domain name: %s\n", new_packet->payload);
 			domain_id = -1;
 			int isSame;
 			i = 0;
+			printf("in job req id by name: %s\n", new_job->packet->payload);
 			while(DNS_Table[i].valid != 0){
 				isSame = strcmp(DNS_Table[i].domain_name, new_job->packet->payload);
 				if(isSame == 0) {
@@ -975,7 +986,7 @@ printf("domain name: %s\n", new_packet->payload);
 		break;
 }
 
-	}//if job queue not empty
+}//if job queue not empty
 
 	/* The host goes to sleep for 10 ms */
 	usleep(TENMILLISEC);

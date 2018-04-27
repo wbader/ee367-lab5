@@ -126,13 +126,7 @@ int host_id;
 int n;
 
 msg[0] = 's';
-msg[1] = '\0';
-
-//printf("In display_host_state\n");
-
 write(curr_host->send_fd, msg, 1);
-
-//printf("Sent msg: %s\n", msg);
 
 n = 0;
 while (n <= 0) {
@@ -176,7 +170,6 @@ char msg[MAN_MSG_LENGTH];
 char reply[MAN_MSG_LENGTH];
 char domain_name[MAX_DNS_NAME_LENGTH];
 int host_to_ping;
-
 int host_or_name;
 int n,k;
 printf("Ping by (1) Host ID or (2) Domain Name? \n");
@@ -189,6 +182,9 @@ if(host_or_name == 2){
 	domain_name[k] = '\0';
 	printf("name you entered: %s\n", domain_name);
 	n = sprintf(msg, "n %s", domain_name);
+	//clean buff
+	
+	printf("msg before sent: %s\n", msg);
 	write(curr_host->send_fd, msg, n);
 	n = 0;
 	while (n <= 0) {
@@ -197,13 +193,16 @@ if(host_or_name == 2){
 	}
 	reply[n] = '\0';
 	int ping_id = atoi(reply);
-//	printf("This is from Man\n received id: %d\n start ping job\n",ping_id);
+	printf("This is from Man\n received id: %d\n",ping_id);
 	n = sprintf(msg, "p %d", ping_id);
+	
 	if(ping_id == curr_host->host_id){
 		printf("cannot ping itself\n");
 	}else if(ping_id < 0){
 		printf("This name has not registered\n");
 	}else{
+		printf("start ping\n");
+		printf("sent msg: %s\n",msg);
 		write(curr_host->send_fd, msg, n);
 		n = 0;
 		while (n <= 0) {
@@ -211,7 +210,7 @@ if(host_or_name == 2){
 			n = read(curr_host->recv_fd, reply, MAN_MSG_LENGTH);
 		}
 		reply[n] = '\0';
-		printf("%s\n",reply);
+		printf(" this is reply %s\n",reply);
 	}
 	
 }else if(host_or_name == 1){
@@ -219,6 +218,7 @@ if(host_or_name == 2){
 	scanf("%d", &host_to_ping);
 	n = sprintf(msg, "p %d", host_to_ping);
 	write(curr_host->send_fd, msg, n);
+	printf("sent msg: %s\n",msg);
 	n = 0;
 	while (n <= 0) {
 		usleep(TENMILLISEC);
@@ -227,7 +227,6 @@ if(host_or_name == 2){
 	reply[n] = '\0';
 	printf("%s\n",reply);
 	}else{printf("Invalid command\n");}
-
 }
 
 void register_domain_name(struct man_port_at_man *curr_host){
@@ -238,8 +237,12 @@ void register_domain_name(struct man_port_at_man *curr_host){
 	scanf("%s", domain_name);
 	n = sprintf(msg, "r %s", domain_name);
 //	printf("length of string %d\n",n);
-//	printf("%s\n", msg);
+	printf("msg at man %s\n", msg);
 	write(curr_host->send_fd, msg, n);
+	int i;
+	for(i=0;i<MAN_MSG_LENGTH; i++){ msg[i]='\0';}
+	for(i=0;i<MAX_DNS_NAME_LENGTH; i++){ domain_name[i]='\0';}
+
 }
 
 /*

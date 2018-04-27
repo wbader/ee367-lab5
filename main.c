@@ -44,7 +44,6 @@ for (p_node = node_list; p_node != NULL; p_node = p_node->next) {
 	}
 	else if (pid == 0) { /* The child process, which is a node  */
 		if (p_node->type == HOST) {  /* Execute host routine */
-			//printf("Forked HOST%d\n",p_node->id);
 			host_main(p_node->id);
 		}
 		else if (p_node->type == SWITCH) {
@@ -55,7 +54,6 @@ for (p_node = node_list; p_node != NULL; p_node = p_node->next) {
 	}  
 }
 
-// printf("Started Man\n");
 /* 
  * Parent process: Execute manager routine. 
  */
